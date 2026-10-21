@@ -15,6 +15,8 @@ import { Lighting } from './core/lights';
 import { type TerrainRig, makeRocks, makeTerrain, makeMountains } from './world/terrain';
 import { Sky } from './world/sky';
 import { FogPatches } from './world/fogpatches';
+import { buildCabin } from './world/cabin';
+import { plantForest } from './world/trees';
 import { OrbitRig, type Collider } from './camera/rig';
 
 const params = parseParams();
@@ -71,6 +73,12 @@ function boot(): void {
 
   const fogPatches = new FogPatches(scene, terrain.heightAt);
 
+  const cabin = buildCabin(terrain.heightAt);
+  scene.add(cabin.group);
+
+  const forest = plantForest({ heightAt: terrain.heightAt, rocks: rocks.colliders });
+  scene.add(forest.mesh);
+
   /* ---------- 相机 ---------- */
   const colliders: Collider[] = rocks.colliders.map((c) => ({
     type: 'cyl',
@@ -80,6 +88,7 @@ function boot(): void {
     y0: terrain.heightAt(c.x, c.z) - 1,
     y1: terrain.heightAt(c.x, c.z) + 3
   }));
+  colliders.push(...cabin.colliders, ...forest.colliders);
   const rig = new OrbitRig(camera, canvas, {
     yaw: params.yaw ?? undefined,
     dist: params.dist ?? undefined,
@@ -107,20 +116,30 @@ function boot(): void {
 
   /* ---------- 性能 ---------- */
   const perf = new PerfSampler(renderer, params.shot || params.bench);
-  let benchWrote = false;
+  let frames = 0;
+  let benchStage = 0; // 0=未写 1=几何统计已写 2=完整性能已写
+  const writeBench = (extra: Record<string, unknown>): void => {
+    let s = document.getElementById('__forest_bench');
+    if (!s) {
+      s = document.createElement('script');
+      s.id = '__forest_bench';
+      (s as HTMLScriptElement).type = 'application/json';
+      document.body.appendChild(s);
+    }
+    s.textContent = JSON.stringify({ tier, dpr, calls: lastCalls, tris: lastTris, ...extra }, null, 2);
+  };
   const maybeBench = (): void => {
-    if (!params.bench || benchWrote) return;
-    const r = perf.report();
-    if (r.samples >= 50) {
-      benchWrote = true;
-      let s = document.getElementById('__forest_bench');
-      if (!s) {
-        s = document.createElement('script');
-        s.id = '__forest_bench';
-        (s as HTMLScriptElement).type = 'application/json';
-        document.body.appendChild(s);
+    if (!params.bench) return;
+    if (benchStage < 1 && frames >= 60) {
+      benchStage = 1;
+      writeBench({});
+    }
+    if (benchStage < 2) {
+      const r = perf.report();
+      if (r.samples >= 50) {
+        benchStage = 2;
+        writeBench({ frameP50: r.frameP50, frameP95: r.frameP95, frameP99: r.frameP99, cpuP50: r.cpuP50, samples: r.samples, device: r.device });
       }
-      s.textContent = JSON.stringify({ ...r, tier, dpr }, null, 2);
     }
   };
 
@@ -149,6 +168,8 @@ function boot(): void {
   let lastT = performance.now();
   let elapsed = 0;
   let revealed = false;
+  let lastCalls = 0;
+  let lastTris = 0;
 
   const tick = (): void => {
     requestAnimationFrame(tick);
@@ -167,6 +188,7 @@ function boot(): void {
     fog.color.copy(f.fogCol);
     fog.density = f.fogD;
     mountains.update(f);
+    cabin.setClimate(f);
 
     elapsed = alive ? elapsed + dt : elapsed;
     sky.update(f, dirs.sunDir, dirs.moonDir, elapsed);
@@ -178,6 +200,9 @@ function boot(): void {
     renderer.info.reset();
     post.render(dt === 0 ? 1 / 60 : dt, elapsed);
     perf.end(renderer);
+    lastCalls = renderer.info.render.calls;
+    lastTris = renderer.info.render.triangles;
+    frames++;
 
     if (!revealed) {
       revealed = true;

@@ -17,12 +17,12 @@ import type { ClimateFrame } from './climate';
 
 /* ---------- 确定性噪声 ---------- */
 
-function hash2(x: number, y: number): number {
+export function hash2(x: number, y: number): number {
   const s = Math.sin(x * 127.1 + y * 311.7) * 43758.5453123;
   return s - Math.floor(s);
 }
 
-function noise2(x: number, y: number): number {
+export function noise2(x: number, y: number): number {
   const ix = Math.floor(x);
   const iy = Math.floor(y);
   const fx = x - ix;
@@ -36,7 +36,7 @@ function noise2(x: number, y: number): number {
   return a + (b - a) * ux + (c - a) * uy + (a - b - c + d) * ux * uy;
 }
 
-function fbm2(x: number, y: number, oct: number): number {
+export function fbm2(x: number, y: number, oct: number): number {
   let v = 0;
   let amp = 0.5;
   let fx = x;
@@ -76,9 +76,9 @@ function makeGroundTexture(): CanvasTexture {
       const p = (y * n + x) * 4;
       const v = fbm2(x * 0.11, y * 0.11, 3);
       const v2 = fbm2(x * 0.31 + 9, y * 0.31 - 4, 2);
-      const g = 0.30 + v * 0.34;
-      const r = 0.20 + v * 0.22 + v2 * 0.16;
-      const b = 0.14 + v * 0.10;
+      const g = 0.24 + v * 0.28;
+      const r = 0.22 + v * 0.22 + v2 * 0.12;
+      const b = 0.12 + v * 0.07;
       const grit = (hash2(x * 1.1, y * 1.1) - 0.5) * 0.06;
       data[p] = Math.round(Math.min(1, r + grit) * 255);
       data[p + 1] = Math.round(Math.min(1, g + grit * 0.7) * 255);
@@ -101,7 +101,7 @@ export interface TerrainRig {
 }
 
 export function makeTerrain(): TerrainRig {
-  const geo = new PlaneGeometry(380, 380, 130, 130);
+  const geo = new PlaneGeometry(380, 380, 112, 112);
   geo.rotateX(-Math.PI / 2);
   const pos = geo.attributes.position;
   const colors = new Float32Array(pos.count * 3);
@@ -141,7 +141,7 @@ export function makeTerrain(): TerrainRig {
 
 /* ---------- 石头 ---------- */
 
-function makeStoneTexture(): Texture {
+export function makeStoneTexture(): Texture {
   const n = 128;
   const cv = document.createElement('canvas');
   cv.width = n;
@@ -153,10 +153,10 @@ function makeStoneTexture(): Texture {
     for (let x = 0; x < n; x++) {
       const p = (y * n + x) * 4;
       const v = fbm2(x * 0.14, y * 0.14, 3) * 0.6 + hash2(x * 1.7, y * 1.7) * 0.25;
-      const c = 0.38 + v * 0.38;
-      data[p] = Math.round(c * 255);
-      data[p + 1] = Math.round(c * 255 * 0.99);
-      data[p + 2] = Math.round(c * 255 * 0.97);
+      const c = 0.42 + v * 0.36;
+      data[p] = Math.round(c * 268);
+      data[p + 1] = Math.round(c * 244);
+      data[p + 2] = Math.round(c * 210);
       data[p + 3] = 255;
     }
   }
@@ -177,6 +177,7 @@ export interface RockCollider {
 export function makeRocks(count: number, heightFn: (x: number, z: number) => number): { meshes: Mesh[]; colliders: RockCollider[] } {
   const mat = new MeshStandardMaterial({
     map: makeStoneTexture(),
+    color: 0x9a8f80,
     roughness: 0.9,
     metalness: 0,
     flatShading: true
