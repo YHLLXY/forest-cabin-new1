@@ -66,3 +66,27 @@
 
 ## P2 已知问题（可接受）
 - 背光下门板近黑（物理一致：门背对夕阳；黎明/蓝调下可辨）
+
+## 预算修正（对照需求书原文）
+- 需求书 draw call 预算：**高 ≤130 / 超高 ≤175**（此前自记"≤320"是拍脑袋，错的）——当前 284 超标，排入 3d"提亮+补光+瘦身"（合并 cabin 静态件/窗实例化收敛）
+- 三角形预算：高 ≤1.0M / 超高 ≤1.4M（自记 ≤90k 过紧）——余量留给 3c 树精修（轮生枝+针叶卡片，替换"绿色圆锥"）
+
+## Phase 3a 完成（光影面板）
+- `src/ui/panel.ts`（新，~330 行）：右侧抽屉，默认收起 + `inert`；打开焦点进关闭按钮，Esc 关闭并把焦点还给手柄
+- **12 滑杆**：太阳 4（方位/高度/强度/色温）· 空气 2（雾/曝光）· 灯火 3（炉火/窗灯/炊烟*）· 画面 3（颗粒/暗角/辉光）
+  - 绝对值类（方位/高度/色温）：不接管时跟随气候锚点，接管后每帧锁值；倍率类乘在帧结果上，默认 ×1.00
+  - 未接管的滑杆显示跟随当前帧值（打开面板即同步）；炊烟滑杆已就位、接线于 3b
+- 4 预设 chips（键盘 1-4 / chip / URL 三入口同源联动，startPreset 保证初始高亮一致）+ 阴影档位（512/1024/2048/4096，换档释放旧 shadow map，否则 three 复用旧分辨率）+ 恢复默认
+- localStorage 防抖 400ms 持久化；`?light=` 在场时整场不读不写（需求书要求）
+- 键盘 1-4 在面板内聚焦时让路（防拖滑杆误触预设）
+- 管道：climate.ts 新增 `ClimateOverride`（el/az 绝对 + sunI/fog 倍率，接进 rebuild 前保证星/月/萤火虫派生一致）；cabin.setClimate 接 fire/win 倍率；post.setDisplayFX 接颗粒/暗角（基调 0.04/0.30，钳 0.12/0.62）
+- 数字：构建 gzip **150.76 KB**（+3KB / 预算 220 ✓）；tsc 严格通过
+- 截图：`docs/shots/p3a_{dusk_open,dusk_closed,night_open}.png`
+
+## P3a 攻坚教训（防复发）
+- **headless 截图三连坑**：① `--timeout` 只是兜底——页面 network-idle 约 2.3s 即抢拍，0.6s loading 淡出必撞枪口；② 大面积 compositor 动画（opacity 过渡）在 --disable-gpu 下冻结在中间帧，永久残留 → 加 `?fastload=1`（loading 即隐）+ 900ms 后 display:none 双保险；③ `--virtual-time-budget` 对 rAF 页面间歇不退出，真实时间 `--timeout` + 独立临时 user-data-dir 才稳定
+- **1× 缩略图"文字发花" = 亚像素抗锯齿错觉**（5× 放大后"恢复默认"完全清晰）——先放大取证再下结论，不许按错觉改代码
+- backdrop-filter 在 headless 可致字形重影 + 移动端合成开销，改实底
+- 控件底色透明度要够（0.05 会被身后亮窗 backdrop 透色糊字 → 0.62/0.72）
+- 自查 dev server 是否 serve 新代码：用 esbuild 转译后的形态匹配（`display = "none"`），写原样 `display = 'none'` 会假阴性；DOM dump 在 load 事件即拍（早于首帧 reveal），不能用它判断运行时状态
+- `?light=`/键盘/三入口必须与面板 chips 同源（startPreset 参数），否则 UI 高亮和场景各说各话

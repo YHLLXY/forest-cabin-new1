@@ -99,6 +99,11 @@ export class Lighting {
   }
 
   setShadowResolution(size: number): void {
+    // 运行时改档位必须释放旧图，否则 three 复用旧分辨率
+    if (this.sun.shadow.map) {
+      this.sun.shadow.map.dispose();
+      this.sun.shadow.map = null;
+    }
     this.sun.shadow.mapSize.set(size, size);
   }
 }

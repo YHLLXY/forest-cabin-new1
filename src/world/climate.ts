@@ -118,6 +118,15 @@ export const PRESET_CLOCK: Record<PresetId, number> = {
   dawn: 20700
 };
 
+/** 面板每帧注入的接管值；未提供字段 = 跟随气候锚点 */
+export interface ClimateOverride {
+  el?: number;
+  az?: number;
+  kelvin?: number;
+  sunIMul?: number;
+  fogMul?: number;
+}
+
 export interface ClimateFrame {
   el: number;
   az: number;
@@ -182,6 +191,7 @@ export class Climate {
   private animT = -1;
   readonly animDur = 1.9;
   readonly frame: ClimateFrame;
+  private over: ClimateOverride | null = null;
 
   private cA = new Color();
   private cB = new Color();
@@ -221,6 +231,11 @@ export class Climate {
 
   setPreset(id: PresetId): void {
     this.transitionTo(stateFromClock(PRESET_CLOCK[id]));
+  }
+
+  /** 每帧由面板调用（含 null = 无接管） */
+  setOverride(o: ClimateOverride | null): void {
+    this.over = o;
   }
 
   setClock(t: number): void {
@@ -266,6 +281,10 @@ export class Climate {
         this.animTarget = null;
       }
     }
+    if (this.over) {
+      if (this.over.el !== undefined) this.el = this.over.el;
+      if (this.over.az !== undefined) this.az = this.over.az;
+    }
     this.rebuild();
   }
 
@@ -305,6 +324,8 @@ export class Climate {
 
     fr.kelvin = num('kelvin');
     fr.sunI = num('sunI');
+    if (this.over?.kelvin !== undefined) fr.kelvin = this.over.kelvin;
+    if (this.over?.sunIMul !== undefined) fr.sunI *= Math.max(0, this.over.sunIMul);
     col('skyTop', fr.skyTop);
     col('skyHor', fr.skyHor);
     col('glow', fr.glow);
@@ -317,6 +338,7 @@ export class Climate {
     fr.fillI = num('fillI');
     col('fogCol', fr.fogCol);
     fr.fogD = num('fogD');
+    if (this.over?.fogMul !== undefined) fr.fogD *= Math.max(0, this.over.fogMul);
     fr.exposure = num('exp');
     fr.bloom = num('bloom');
 

@@ -18,6 +18,7 @@ import { FogPatches } from './world/fogpatches';
 import { buildCabin } from './world/cabin';
 import { plantForest } from './world/trees';
 import { OrbitRig, type Collider } from './camera/rig';
+import { createPanel, type PanelApi } from './ui/panel';
 
 const params = parseParams();
 
@@ -105,6 +106,18 @@ function boot(): void {
   climate.setClock(PRESET_CLOCK[startPreset]);
   if (params.t !== null) climate.setClock(params.t);
 
+  /* ---------- 光影面板（shot/bench 模式不装） ---------- */
+  let panel: PanelApi | null = null;
+  if (!params.shot && !params.bench) {
+    panel = createPanel({
+      locked: params.light !== null,
+      defaultShadow: TIER.shadow,
+      startPreset,
+      onPreset: (id) => climate.setPreset(id),
+      onShadow: (n) => lighting.setShadowResolution(n)
+    });
+  }
+
   const dpr = Math.min(window.devicePixelRatio || 1, TIER.dpr);
   renderer.setPixelRatio(dpr);
   renderer.setSize(window.innerWidth, window.innerHeight);
@@ -146,14 +159,19 @@ function boot(): void {
   /* ---------- UI 提示 ---------- */
   if (!params.shot && !params.bench) {
     document.getElementById('hint')!.innerHTML =
-      '拖拽 环绕 · 滚轮/双指 推拉 · 双击 定格<br><kbd>1</kbd>-<kbd>4</kbd> 黄昏 / 蓝调 / 夜晚 / 黎明';
+      '拖拽 环绕 · 滚轮/双指 推拉 · 双击 定格<br><kbd>1</kbd>-<kbd>4</kbd> 黄昏 / 蓝调 / 夜晚 / 黎明 · 右上 ⚙ 光影面板';
   }
 
+  const PRESET_KEYS: readonly PresetId[] = ['dusk', 'blue', 'night', 'dawn'];
   window.addEventListener('keydown', (e) => {
-    if (e.key === '1') climate.setPreset('dusk');
-    else if (e.key === '2') climate.setPreset('blue');
-    else if (e.key === '3') climate.setPreset('night');
-    else if (e.key === '4') climate.setPreset('dawn');
+    const k = e.key;
+    if (k === '1' || k === '2' || k === '3' || k === '4') {
+      // 焦点在面板内时不接管滑杆操作
+      if (e.target instanceof HTMLElement && e.target.closest('#fx-panel,#fx-handle')) return;
+      const id = PRESET_KEYS[Number(k) - 1];
+      climate.setPreset(id);
+      panel?.onExternalPreset(id);
+    }
   });
 
   window.addEventListener('resize', () => {
@@ -180,6 +198,8 @@ function boot(): void {
 
     perf.begin();
     const alive = !params.shot && params.t === null;
+    panel?.feedFrame(climate.frame);
+    panel?.applyToClimate(climate);
     climate.update(alive ? dt : 0);
     const f = climate.frame;
     const dirs = lighting.update(f);
@@ -188,15 +208,16 @@ function boot(): void {
     fog.color.copy(f.fogCol);
     fog.density = f.fogD;
     mountains.update(f);
-    cabin.setClimate(f);
+    cabin.setClimate(f, panel ? { fire: panel.mul('fire'), win: panel.mul('win') } : undefined);
 
     elapsed = alive ? elapsed + dt : elapsed;
     sky.update(f, dirs.sunDir, dirs.moonDir, elapsed);
     fogPatches.update(f, elapsed, !alive);
     rig.update(alive ? dt : 0, elapsed);
 
-    renderer.toneMappingExposure = f.exposure;
-    post.bloom.strength = f.bloom;
+    renderer.toneMappingExposure = f.exposure * (panel?.mul('exp') ?? 1);
+    post.bloom.strength = f.bloom * (panel?.mul('bloom') ?? 1);
+    post.setDisplayFX(panel?.mul('grain') ?? 1, panel?.mul('vig') ?? 1);
     renderer.info.reset();
     post.render(dt === 0 ? 1 / 60 : dt, elapsed);
     perf.end(renderer);
@@ -207,8 +228,13 @@ function boot(): void {
     if (!revealed) {
       revealed = true;
       const loading = document.getElementById('loading')!;
-      if (params.shot || params.bench) loading.style.transition = 'none';
+      // fastload：headless 取证截图用——loading 立即消失，避免网络空闲抢拍撞上 0.6s 淡出
+      if (params.shot || params.bench || new URLSearchParams(window.location.search).has('fastload')) {
+        loading.style.transition = 'none';
+      }
       loading.classList.add('gone');
+      // 淡出完成后整体移出合成层（headless 合成下 opacity 卡帧的兜底）
+      window.setTimeout(() => { loading.style.display = 'none'; }, 900);
     }
     maybeBench();
   };

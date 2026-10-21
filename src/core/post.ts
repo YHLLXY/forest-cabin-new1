@@ -105,6 +105,12 @@ export class PostFX {
     this.frozen = v;
   }
 
+  /** 画面滑杆（倍率）→ 显示空间特效 */
+  setDisplayFX(grainMul: number, vigMul: number): void {
+    this.fx.uniforms.uGrain.value = Math.min(0.12, 0.04 * grainMul);
+    this.fx.uniforms.uVignette.value = Math.min(0.62, 0.30 * vigMul);
+  }
+
   render(dt: number, elapsed: number): void {
     this.fx.uniforms.uTime.value = this.frozen ? 0 : elapsed;
     this.composer.render(dt);

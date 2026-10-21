@@ -134,7 +134,7 @@ export interface CabinRig {
   colliders: Collider[];
   /** 烟囱口（本地坐标，世界坐标 = group.localToWorld） */
   smokeAnchor: Vector3;
-  setClimate: (f: ClimateFrame) => void;
+  setClimate: (f: ClimateFrame, mul?: { fire: number; win: number }) => void;
 }
 
 export function buildCabin(heightFn: (x: number, z: number) => number): CabinRig {
@@ -370,11 +370,13 @@ const logMat = new MeshStandardMaterial({ map: logTex, roughness: 0.88, metalnes
   const ch = wpt(-3.12, 0.55);
   colliders.push({ type: 'cyl', x: ch.x, z: ch.z, r: 0.5, y0: 0, y1: 5.4 });
 
-  /* 窗光随气候：日落后渐亮，深夜最盛 */
-  const setClimate = (f: ClimateFrame): void => {
+  /* 窗光随气候：日落后渐亮，深夜最盛；面板倍率经 mul 传入 */
+  const setClimate = (f: ClimateFrame, mul?: { fire: number; win: number }): void => {
     const glowK = smooth01(clamp01((6 - f.el) / 12));
-    glassMat.emissiveIntensity = 0.22 + glowK * 1.5;
-    fire.intensity = 0.3 + glowK * 2.5;
+    const fm = Math.max(0, mul?.fire ?? 1);
+    const wm = Math.max(0, mul?.win ?? 1);
+    glassMat.emissiveIntensity = (0.22 + glowK * 1.5) * wm;
+    fire.intensity = (0.3 + glowK * 2.5) * fm;
   };
 
   return { group, colliders, smokeAnchor, setClimate };

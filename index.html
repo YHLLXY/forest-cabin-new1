@@ -31,6 +31,84 @@
       background: #0b1220; color: #c9d4ea; text-align: center;
       font: 15px/1.8 system-ui, 'Microsoft YaHei', sans-serif;
     }
+
+    /* ---------- 光影面板抽屉 ---------- */
+    #fx-handle {
+      position: fixed; top: 14px; right: 14px; z-index: 30;
+      width: 44px; height: 44px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(12, 18, 32, 0.72); border: 1px solid rgba(200, 215, 240, 0.25);
+      color: #e8ddc0; cursor: pointer; backdrop-filter: blur(6px);
+    }
+    #fx-handle:hover { border-color: rgba(255, 196, 110, 0.55); color: #ffd9a0; }
+    #fx-panel {
+      position: fixed; top: 0; right: 0; bottom: 0; width: 292px; z-index: 35;
+      background: linear-gradient(rgba(14, 20, 36, 0.98), rgba(10, 15, 28, 0.99));
+      border-left: 1px solid rgba(190, 205, 235, 0.16);
+      box-shadow: -12px 0 32px rgba(0, 0, 0, 0.35);
+      transform: translateX(calc(100% + 30px));
+      transition: transform 0.26s ease;
+      color: #dfe6f2; font: 13px/1.5 system-ui, 'Microsoft YaHei', sans-serif;
+      overflow-y: auto; overscroll-behavior: contain;
+    }
+    @media (prefers-reduced-motion: reduce) { #fx-panel { transition: none; } }
+    #fx-panel.open { transform: none; }
+    #fx-panel header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 16px 10px;
+    }
+    #fx-panel header strong { font-size: 14px; letter-spacing: 0.06em; }
+    #fx-close {
+      background: none; border: none; color: #c6d2e8; font-size: 22px;
+      line-height: 1; cursor: pointer; padding: 2px 6px;
+    }
+    #fx-close:hover { color: #ffd9a0; }
+    #fx-chips { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; padding: 0 16px; }
+    #fx-panel .chip {
+      padding: 7px 0; border-radius: 8px; cursor: pointer;
+      border: 1px solid rgba(190, 205, 235, 0.22);
+      background: rgba(16, 22, 40, 0.62);
+      color: #dfe6f2; font: inherit; font-size: 12px;
+    }
+    #fx-panel .chip[aria-pressed="true"] {
+      background: rgba(255, 196, 110, 0.16);
+      border-color: rgba(255, 196, 110, 0.55); color: #ffd9a0;
+    }
+    #fx-panel .sec { padding: 10px 16px 2px; }
+    #fx-panel h3 {
+      margin: 6px 0 6px; font-size: 11px; font-weight: 600;
+      letter-spacing: 0.18em; color: #93a5c4;
+    }
+    #fx-panel .row {
+      display: grid; grid-template-columns: 56px 1fr 52px;
+      gap: 8px; align-items: center; margin: 7px 0;
+    }
+    #fx-panel .row label { font-size: 12px; color: #c6d2e8; }
+    #fx-panel .row output {
+      font-size: 11px; color: #8fa3c8; text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    #fx-panel .row input[type=range] {
+      width: 100%; margin: 0; accent-color: #ffb469;
+    }
+    #fx-panel .fx-foot {
+      display: flex; align-items: center; gap: 8px;
+      padding: 14px 16px 20px;
+    }
+    #fx-panel .fx-foot label { font-size: 12px; color: #c6d2e8; }
+    #fx-shadow {
+      flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px;
+      background: rgba(16, 22, 40, 0.72); color: inherit;
+      border: 1px solid rgba(190, 205, 235, 0.22); font: inherit; font-size: 12px;
+    }
+    #fx-shadow option { background: #10162a; }
+    #fx-restore {
+      padding: 7px 10px; border-radius: 8px; cursor: pointer;
+      border: 1px solid rgba(190, 205, 235, 0.28);
+      background: rgba(16, 22, 40, 0.72); color: #dfe6f2;
+      font: inherit; font-size: 12px; white-space: nowrap;
+    }
+    #fx-restore:hover { border-color: rgba(255, 196, 110, 0.55); color: #ffd9a0; }
   </style>
 </head>
 <body>
