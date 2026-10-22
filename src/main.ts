@@ -80,7 +80,7 @@ function boot(): void {
   scene.add(cabin.group);
 
   const forest = plantForest({ heightAt: terrain.heightAt, rocks: rocks.colliders });
-  scene.add(forest.mesh);
+  for (const m of forest.meshes) scene.add(m);
 
   /* ---------- 相机 ---------- */
   const colliders: Collider[] = rocks.colliders.map((c) => ({

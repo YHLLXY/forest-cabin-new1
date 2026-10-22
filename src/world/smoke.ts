@@ -2,7 +2,7 @@
  * 炊烟 — 烟囱炊烟粒子系统（3b）
  *
  * 设计：
- * - 48 粒全 GPU 循环：vertex shader 用 fract(uTime/周期 + aOff) 算命期，
+ * - 176 粒全 GPU 循环：vertex shader 用 fract(uTime/周期 + aOff) 算命期，
  *   CPU 每帧只写 4 个 uniform，零动态 buffer 写入，单 draw call
  * - 运动回路 = 升腾 2.4~3.3m(减速) + 西风 (-x,-z 0.35) 漂移 + 命期正弦摆（确定性可复现）
  *   粒子散布收紧成柱，尺寸放大叠出连贯烟柱
@@ -14,7 +14,7 @@
 import { BufferAttribute, BufferGeometry, Color, Points, ShaderMaterial, Vector3 } from 'three';
 import type { ClimateFrame } from './climate';
 
-const COUNT = 96;
+const COUNT = 176;
 const CYCLE = 9.0; // 单粒烟生→灭秒数
 const TAU = Math.PI * 2;
 
@@ -73,12 +73,12 @@ export function createSmoke(origin: Vector3, dpr: number): SmokeRig {
         float ang = aSeed * ${TAU.toFixed(4)} * (0.55 + aSeed * 0.45);
         float ca = cos(ang);
         float sa = sin(ang);
-        float rise = (2.4 + aSeed * 0.9) * pow(life, 0.8); // 升腾减速
-        float driftR = (0.5 + aSeed * 0.5) * pow(life, 1.5) * 3.2; // 横向扩散（收紧方差）
+        float rise = (2.9 + aSeed * 0.4) * pow(life, 0.8); // 升腾减速（收方差防断珠）
+        float driftR = (0.5 + aSeed * 0.5) * pow(life, 1.5) * 2.55; // 横向扩散（收紧方差）
         vec3 sway = vec3(
-          sin(life * 10.7 + aSeed * 41.0) * 0.18,
-          sin(life * 6.6 + aSeed * 17.0) * 0.10,
-          cos(life * 9.1 + aSeed * 23.0) * 0.18
+          sin(life * 10.7 + aSeed * 41.0) * 0.13,
+          sin(life * 6.6 + aSeed * 17.0) * 0.08,
+          cos(life * 9.1 + aSeed * 23.0) * 0.13
         ) * life;
         // 西风：漂向 -x 越过林梢，离屋而去
         vec3 pos = uOrigin
@@ -88,7 +88,7 @@ export function createSmoke(origin: Vector3, dpr: number): SmokeRig {
         vec4 mv4 = modelViewMatrix * vec4(pos, 1.0);
         vec3 mv = mv4.xyz;
         vZ = -mv.z;
-        float size = (3.0 + life * 3.6 + aSeed * 0.6) * uDpr * 46.0 / max(1.0, -mv.z);
+        float size = (3.0 + life * 3.6 + aSeed * 0.6) * uDpr * 50.0 / max(1.0, -mv.z);
         gl_PointSize = clamp(size, 2.0, 260.0);
         gl_Position = projectionMatrix * mv4;
       }`,
