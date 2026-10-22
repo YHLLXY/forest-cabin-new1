@@ -17,6 +17,8 @@ import { Sky } from './world/sky';
 import { FogPatches } from './world/fogpatches';
 import { buildCabin } from './world/cabin';
 import { plantForest } from './world/trees';
+import { createSmoke } from './world/smoke';
+import { createFireflies } from './world/fireflies';
 import { OrbitRig, type Collider } from './camera/rig';
 import { createPanel, type PanelApi } from './ui/panel';
 
@@ -127,6 +129,12 @@ function boot(): void {
 
   lighting.setShadowResolution(TIER.shadow);
 
+  /* ---------- 氛围粒子（炊烟 / 萤火虫） ---------- */
+  const smoke = createSmoke(cabin.smokeAnchor, dpr);
+  scene.add(smoke.points);
+  const fireflies = createFireflies({ heightAt: terrain.heightAt, dpr });
+  scene.add(fireflies.points);
+
   /* ---------- 性能 ---------- */
   const perf = new PerfSampler(renderer, params.shot || params.bench);
   let frames = 0;
@@ -213,6 +221,8 @@ function boot(): void {
     elapsed = alive ? elapsed + dt : elapsed;
     sky.update(f, dirs.sunDir, dirs.moonDir, elapsed);
     fogPatches.update(f, elapsed, !alive);
+    smoke.update(alive ? dt * (rig.reduced ? 0.4 : 1) : 0, f, panel ? panel.mul('smoke') : 1);
+    fireflies.update(alive ? dt : 0, f, rig.reduced ? 0.35 : 1);
     rig.update(alive ? dt : 0, elapsed);
 
     renderer.toneMappingExposure = f.exposure * (panel?.mul('exp') ?? 1);

@@ -90,3 +90,24 @@
 - 控件底色透明度要够（0.05 会被身后亮窗 backdrop 透色糊字 → 0.62/0.72）
 - 自查 dev server 是否 serve 新代码：用 esbuild 转译后的形态匹配（`display = "none"`），写原样 `display = 'none'` 会假阴性；DOM dump 在 load 事件即拍（早于首帧 reveal），不能用它判断运行时状态
 - `?light=`/键盘/三入口必须与面板 chips 同源（startPreset 参数），否则 UI 高亮和场景各说各话
+
+## Phase 3b 完成（炊烟 + 萤火虫）
+- `src/world/smoke.ts`（新，~150 行）：烟囱炊烟 96 粒全 GPU 循环粒子
+  - vertex 用 fract(uTime/9s + aOff) 算命期；运动 = 升腾 2.4~3.3m(减速) + 西风漂移越林梢 + 命期正弦摆；LCG(7757) 确定性撒点
+  - 面板「炊烟」滑杆（×0~3）已接线：≤1 乘 alpha（0=无烟），>1 压缩淡出窗抬上限
+  - 色随太阳高度角（夜暗昼亮灰），FogExp2 片元手动衰减；loop 关键点：frustumCulled=false（真身在 shader 生成）
+- `src/world/fireflies.ts`（新，~150 行）：草甸萤火虫 96 粒单 draw call
+  - 屋前环带 r 3.5~16m 贴地形撒点 +0.35~1.5m；trim 走=三频 Lissajous；闪烁=sin^4.5 尖脉冲+0.35 底值（抽样点亮）
+  - 门控：el 16°→6° 淡入（黎明 el=28 → 归零不可见）；夜随 el 再抬辉度；additive+depthWrite off，深度测试保留（屋体/树干可遮挡）
+  - reduced-motion → 游走幅度 ×0.35、炊烟流速 ×0.4
+- main.ts 接线 +2 调用；⽰数字：**draw calls 286**（+2，预算问题留给 3d 瘦身）、tris 不变 81,523、构建 gzip **153.35 KB** / 220 ✓
+- 截图：`p3b_smoke_dusk.png`（软白烟柱）、`p3b_fireflies_night.png`（夜景绿光点）、`p3b_dawn_gone.png`（黎明萤火虫归零证据）
+- console 检查已跑（--enable-logging=stderr）：修复后零 shader 错误
+
+## P3b 攻坚教训（防复发）
+- **mat4×vec4=vec4**：`vec3 mv = modelViewMatrix * vec4(p,1.0)` 维度不符 → vertex 编译失败表现为"对象整体不可见"，console 一次性给全 ERROR 行；捕获链 = Edge `--enable-logging=stderr --v=0` + Select-String 'Shader Error|ERROR: 0:'
+- **THREE.Color.setRGB 填的是线性空间**：0.70 线性 ≈ sRGB 0.85 近白（烟变成白色气泡串的直接原因）；手动 authored 颜色必须按线性：sRGB 0.6 → 线性 0.32
+- **gl_PointSize 实测换算**：px = worldSize × dpr × 46 / vZ；1600 截图再 ÷dpr÷1.75 缩半；"看不清"先算一下该有的 px 再怀疑材质
+- 点精灵聚形态：粒子要连成柱必须相邻弹道收敛（seed 方差收紧）+ 尺寸放大叠出软面；alpha 降软（0.36 起）比升亮更"像烟"
+- **bench 数字必须 --virtual-time-budget**：--dump-dom 在 load 事件即拍（此时 bench 标签还没写，60 帧后），virtual-time 快进 rAF 后 dump 才有 `__forest_bench`；实拍截图继续用 --timeout（bench 与 shot=1 互斥：shot=1 不写 bench 标签）
+- reduced-motion 检查表新增：萤火虫游走幅度、炊烟流速（摄像机漂移/雾片此前已接）
