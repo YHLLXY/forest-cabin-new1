@@ -3,16 +3,21 @@
   CanvasTexture,
   Color,
   DodecahedronGeometry,
+  DoubleSide,
+  Euler,
   Float32BufferAttribute,
+  Matrix4,
   Mesh,
   MeshBasicMaterial,
   MeshStandardMaterial,
   PlaneGeometry,
-  DoubleSide,
+  Quaternion,
   RepeatWrapping,
   SRGBColorSpace,
-  Texture
+  Texture,
+  Vector3
 } from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import type { ClimateFrame } from './climate';
 
 /* ---------- 确定性噪声 ---------- */
@@ -182,14 +187,21 @@ export function makeRocks(count: number, heightFn: (x: number, z: number) => num
     metalness: 0,
     flatShading: true
   });
-  const meshes: Mesh[] = [];
   const colliders: RockCollider[] = [];
+  const parts: BufferGeometry[] = [];
   let seed = 7;
 
   const rnd = (): number => {
     seed = (seed * 16807) % 2147483647;
     return seed / 2147483647;
   };
+
+  /* 3d 瘦身：12 块岩石烘进矩阵后合成 1 个 mesh（主+影各省 11 draw） */
+  const m4 = new Matrix4();
+  const eu = new Euler();
+  const qt = new Quaternion();
+  const vp = new Vector3();
+  const vs = new Vector3();
 
   for (let k = 0; k < count; k++) {
     const geom = new DodecahedronGeometry(1, 1);
@@ -208,16 +220,19 @@ export function makeRocks(count: number, heightFn: (x: number, z: number) => num
     const rad = 18 + rnd() * 30;
     const x = Math.cos(ang) * rad;
     const z = Math.sin(ang) * rad;
-    const mesh = new Mesh(geom, mat);
-    mesh.position.set(x, heightFn(x, z) + s * 0.18, z);
-    mesh.scale.set(s, s * (0.55 + rnd() * 0.4), s);
-    mesh.rotation.set(rnd() * 0.4, rnd() * Math.PI * 2, rnd() * 0.4);
-    mesh.castShadow = true;
-    mesh.receiveShadow = true;
-    meshes.push(mesh);
+    const sy = s * (0.55 + rnd() * 0.4);
+    const ry = rnd() * Math.PI * 2;
+    qt.setFromEuler(eu.set(rnd() * 0.4, ry, rnd() * 0.4));
+    m4.compose(vp.set(x, heightFn(x, z) + s * 0.18, z), qt, vs.set(s, sy, s));
+    geom.applyMatrix4(m4);
+    parts.push(geom);
     colliders.push({ x, z, r: s * 0.92 });
   }
-  return { meshes, colliders };
+
+  const rocks = new Mesh(mergeGeometries(parts, false)!, mat);
+  rocks.castShadow = true;
+  rocks.receiveShadow = true;
+  return { meshes: [rocks], colliders };
 }
 
 /* ---------- 远山剪影（两圈）---------- */

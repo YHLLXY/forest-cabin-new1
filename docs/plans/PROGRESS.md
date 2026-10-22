@@ -129,3 +129,23 @@
 - **卡片式近景"轮辐感"**：长枝 + 沿枝卡位太少 → 背光裸枝成粗辐条；收枝半径（0.038→0.028）+ 加密卡位（3 处/枝）+ 加抖动（±0.7rad）三件套解
 - **粒子"断珠"复诊**：同一命期邻居若速率方差大（rise 2.4~3.3m），屏幕间距拉开即断珠；收速率方差（差 ≤0.4m）比加密粒子更有效
 - `mergeGeometries` 要求所有部件同套 attribute（position/normal/uv/color）——PlaneGeometry 自带 uv，CylinderGeometry 钉 UV 后再合并，缺色用 vertColors() 补
+
+## Phase 3d 完成（提亮 + 补光 + 绘制瘦身）
+- **瘦身（核心）**：
+  - `cabin.ts`：静态件全部改为"几何烘进世界矩阵 → 按材质合并"（part/partM 批管线），cabin 从 ~125 个独立 mesh → **8 个合并批**（log / plank / 山墙双面 plank / darkWood / stone / chimney / door / glass）；窗 5 组共 40 件并入 darkWood+glass 两批；山墙三角原本无 uv，补零 uv 满足 mergeGeometries 全套 attribute；玻璃批不投影（与原行为一致）
+  - `terrain.ts` makeRocks：12 块岩石各自抖动几何烘矩阵后**合成 1 个 mesh**（确定性 rnd 调用序列保持原序，布点/碰撞体不变）
+  - bench（?bench=1&q=high）：**draw calls 288 → 46**（后期链 ~10、阴影 pass ~14；需求书高档 ≤130 大幅达标）；tris 318,203 → 320,445（合并后整批投影/整体剔除导致 +2.2k，余量充足）
+- **提亮 + 补光**（dawn 列、夜锚点不动，只抬黄昏/蓝调两段；pair 前值为暮后值为晨）：
+  - el:0：sunI 暮 1.7→2.05 · fillI 0.50→0.95 · exp 1.28→1.42
+  - el:-8：sunI 0.50→0.75 · hemiI 0.62→0.78 · fillI 0.55→0.90 · exp 1.06→1.16
+  - el:-18：sunI 0.20→0.28 · hemiI 0.44→0.52 · fillI 0.50→0.60 · exp 0.99→1.04
+  - 实测黄昏屏幕平均照度 54.1→58.6（ACES 压缩后的等效 +8%；蓝调下原木墙已清晰可读）
+- 数字：tsc 严格通过；console 干净（含 shader 编译复核）；构建 gzip **154.35 KB**（预算 220 ✓）
+- 截图：`docs/shots/p3d_{dusk,dusk_back,dusk_front,blue,night}.png`（黄昏默认景与 3c 同机位逐帧一致——合并零视觉回归）
+- 说明：窗框在低角度太阳下的长投影黑条为 3c 已接受基线的物理投影，本期未引入也未放大
+
+## P3d 攻坚教训（防复发）
+- **合并批改动的降噪验收法**：同一机位对着上一阶段验收截图逐帧比对，火萤/炊烟/杂斑全部一致才能下"无回归"结论——本例暗纹与 3c 基线逐像素一致，排除合并引入
+- **烘矩阵合并的确定性保序**：随机布点几何烘进矩阵时，rnd() 调用顺序必须与原 mesh 版本逐行对应（scale 的内联 rnd 也算），否则整片布点漂移
+- **共享几何进合并批必须 clone 后再烘矩阵**（山墙三角两份坐标不同），一次性 attribute 补齐（uv）要在声明处补，不能靠下游兜底
+- luma 抽样脚本（System.Drawing 每 8px 抽样加权灰度）可量化前后照度差，比目测可靠

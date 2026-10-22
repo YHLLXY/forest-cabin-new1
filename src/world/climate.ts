@@ -65,35 +65,35 @@ const ANCHORS: Anchor[] = [
       glow: P(0xff8f40, 0xff9270), glowS: P(1.25, 1.05),
       cloud: P(0xf0a672, 0xf2b498),
       hemiSky: P(0x93a0c4, 0x9aa7c8), hemiGnd: P(0x4a3a2e, 0x4f4032), hemiI: P(1.18, 1.12),
-      fillCol: P(0x46587e, 0x4d5a80), fillI: P(0.50, 0.50),
+      fillCol: P(0x46587e, 0x4d5a80), fillI: P(0.95, 0.75),
       fogCol: P(0xb98c6e, 0xc48b80), fogD: P(0.0045, 0.0045),
-      exp: P(1.28, 1.2), bloom: P(0.45, 0.42)
+      exp: P(1.42, 1.25), bloom: P(0.45, 0.42)
     }
   },
   {
     el: -8,
     p: {
-      kelvin: P(7600, 8000), sunI: P(0.50, 0.45),
+      kelvin: P(7600, 8000), sunI: P(0.75, 0.62),
       skyTop: P(0x1e2b50, 0x24305a), skyHor: P(0x8b95c2, 0x949cc8),
       glow: P(0x9a8fd2, 0xa493cc), glowS: P(0.7, 0.66),
       cloud: P(0x92a0c6, 0x9aa4ca),
-      hemiSky: P(0x53627f, 0x59658a), hemiGnd: P(0x2b2218, 0x2f261d), hemiI: P(0.62, 0.60),
-      fillCol: P(0x31415f, 0x364662), fillI: P(0.55, 0.55),
+      hemiSky: P(0x53627f, 0x59658a), hemiGnd: P(0x2b2218, 0x2f261d), hemiI: P(0.78, 0.70),
+      fillCol: P(0x31415f, 0x364662), fillI: P(0.90, 0.80),
       fogCol: P(0x697696, 0x707c9c), fogD: P(0.006, 0.006),
-      exp: P(1.06, 1.05), bloom: P(0.55, 0.53)
+      exp: P(1.16, 1.10), bloom: P(0.55, 0.53)
     }
   },
   {
     el: -18,
     p: {
-      kelvin: P(10200, 10400), sunI: P(0.20, 0.18),
+      kelvin: P(10200, 10400), sunI: P(0.28, 0.24),
       skyTop: P(0x101a34, 0x141e38), skyHor: P(0x46547e, 0x4e587f),
       glow: P(0x5a6aa6, 0x5f6ba8), glowS: P(0.35, 0.33),
       cloud: P(0x7688ae, 0x7a8ab0),
-      hemiSky: P(0x3a4a6e, 0x3f5074), hemiGnd: P(0x201810, 0x241c14), hemiI: P(0.44, 0.42),
-      fillCol: P(0x2a3854, 0x2e3c58), fillI: P(0.50, 0.50),
+      hemiSky: P(0x3a4a6e, 0x3f5074), hemiGnd: P(0x201810, 0x241c14), hemiI: P(0.52, 0.48),
+      fillCol: P(0x2a3854, 0x2e3c58), fillI: P(0.60, 0.56),
       fogCol: P(0x3c4a66, 0x414e6a), fogD: P(0.007, 0.007),
-      exp: P(0.99, 0.99), bloom: P(0.60, 0.58)
+      exp: P(1.04, 1.02), bloom: P(0.60, 0.58)
     }
   },
   {
