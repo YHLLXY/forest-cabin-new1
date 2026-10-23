@@ -25,7 +25,7 @@ import type { Collider } from '../camera/rig';
 
 const DEG = Math.PI / 180;
 /** 小屋朝向：门脸(+X 本地轴)指向方位角 70°（东北面），逆光英雄镜头(yaw 70)正对发亮窗 */
-const CABIN_ROT = -20 * DEG;
+export const CABIN_ROT = -20 * DEG;
 
 /* ---------- 程序纹理 ---------- */
 

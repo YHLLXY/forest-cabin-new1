@@ -16,6 +16,7 @@ import { type TerrainRig, makeRocks, makeTerrain, makeMountains } from './world/
 import { Sky } from './world/sky';
 import { FogPatches } from './world/fogpatches';
 import { buildCabin } from './world/cabin';
+import { buildInterior } from './world/interior';
 import { plantForest } from './world/trees';
 import { createSmoke } from './world/smoke';
 import { createFireflies } from './world/fireflies';
@@ -79,6 +80,9 @@ function boot(): void {
   const cabin = buildCabin(terrain.heightAt);
   scene.add(cabin.group);
 
+  const interior = buildInterior();
+  cabin.group.add(interior.group);
+
   const forest = plantForest({ heightAt: terrain.heightAt, rocks: rocks.colliders });
   for (const m of forest.meshes) scene.add(m);
 
@@ -91,7 +95,7 @@ function boot(): void {
     y0: terrain.heightAt(c.x, c.z) - 1,
     y1: terrain.heightAt(c.x, c.z) + 3
   }));
-  colliders.push(...cabin.colliders, ...forest.colliders);
+  colliders.push(...cabin.colliders, ...forest.colliders, ...interior.colliders);
   const rig = new OrbitRig(camera, canvas, {
     yaw: params.yaw ?? undefined,
     dist: params.dist ?? undefined,
@@ -217,6 +221,7 @@ function boot(): void {
     fog.density = f.fogD;
     mountains.update(f);
     cabin.setClimate(f, panel ? { fire: panel.mul('fire'), win: panel.mul('win') } : undefined);
+    interior.update(alive ? dt : 0, f, { fire: panel?.mul('fire') ?? 1 });
 
     elapsed = alive ? elapsed + dt : elapsed;
     sky.update(f, dirs.sunDir, dirs.moonDir, elapsed);
